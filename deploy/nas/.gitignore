@@ -1,7 +1,8 @@
-# Never commit secrets, state or backups.
+# Never commit actual accounts, secrets, databases, backups or agent state.
 .env
 relay.env
 runtime.env
+runtime-*.env
 backups/
 data/
 *.db
