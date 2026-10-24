@@ -1,19 +1,34 @@
 #!/usr/bin/env bash
-# Consistent SQLite backup + secrets. The archive is sensitive: encrypt offsite.
+# Consistent online SQLite backup of NAS Relay + CLOUD_SECRET in private config.
+# CAUTION: resulting tar.gz includes secrets; encrypt for offsite storage.
 set -Eeuo pipefail
 umask 077
-here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-[[ -f "$here/.env" && -f "$here/relay.env" ]] || {
-  echo 'Missing deploy/nas/.env or relay.env' >&2
+
+compose_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+deploy_env="${NANOMUSE_DEPLOY_ENV_FILE:-/volume1/docker/nanoMuse/config/.env}"
+[[ -f "$deploy_env" ]] || {
+  echo "Missing private Compose env file: $deploy_env" >&2
   exit 1
 }
-backup_dir="${NANOMUSE_BACKUP_DIR:-$here/backups}"
+# Owned by the operator; this file contains only trusted Compose variables.
+set -a
+# shellcheck disable=SC1090
+source "$deploy_env"
+set +a
+: "${NANOMUSE_CONFIG_ROOT:?Missing NANOMUSE_CONFIG_ROOT}"
+: "${NANOMUSE_DATA_ROOT:?Missing NANOMUSE_DATA_ROOT}"
+backup_dir="${NANOMUSE_BACKUP_DIR:-/volume1/docker/nanoMuse/backups/relay}"
+[[ -f "$NANOMUSE_CONFIG_ROOT/relay.env" ]] || {
+  echo "Missing private Relay config: $NANOMUSE_CONFIG_ROOT/relay.env" >&2
+  exit 1
+}
+
 mkdir -p "$backup_dir"
 stage="$(mktemp -d)"
 trap 'rm -rf -- "$stage"' EXIT
-cp -- "$here/relay.env" "$stage/relay.env"
+cp -- "$NANOMUSE_CONFIG_ROOT/relay.env" "$stage/relay.env"
 
-docker compose --env-file "$here/.env" -f "$here/compose.yaml" exec -T relay python - > "$stage/cloud.db" <<'PY'
+docker compose --env-file "$deploy_env" -f "$compose_dir/compose.yaml" exec -T relay python - > "$stage/cloud.db" <<'PY'
 import os
 import shutil
 import sqlite3
@@ -37,9 +52,13 @@ with tempfile.TemporaryDirectory() as tmp:
     with open(dest, "rb") as saved:
         shutil.copyfileobj(saved, sys.stdout.buffer)
 PY
-[[ -s "$stage/cloud.db" ]] || { echo 'Empty database backup' >&2; exit 1; }
+
+[[ -s "$stage/cloud.db" ]] || {
+  echo "Empty database backup, refusing to archive" >&2
+  exit 1
+}
 archive="$backup_dir/nanomuse-relay-$(date -u +%Y%m%dT%H%M%SZ).tar.gz"
 tar -czf "$archive" -C "$stage" cloud.db relay.env
 chmod 600 "$archive"
-echo "Created owner-only backup: $archive"
-echo "WARNING: archive contains credentials; encrypt before offsite backup."
+echo "Backup created: $archive"
+echo "WARNING: contains CLOUD_SECRET and model credentials; encrypt before offsite backup."
