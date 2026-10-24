@@ -1,0 +1,22 @@
+# Family Cloud Relay: build from this Fork's cloud/ source; no extra Caddy.
+name: nanomuse-family
+services:
+  relay:
+    image: nanomuse-relay:fork-local
+    build:
+      context: ../../cloud
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - path: ./relay.env
+        required: true
+    ports:
+      - "${RELAY_BIND_IP:-127.0.0.1}:${RELAY_PORT:-8787}:8787"
+    volumes:
+      - type: bind
+        source: ${NANOMUSE_DATA_ROOT:?Set NANOMUSE_DATA_ROOT in .env}/relay/data
+        target: /srv/nanomuse-cloud/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
