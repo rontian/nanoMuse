@@ -1,0 +1,23 @@
+# Optional one-person Runtime. Each family user needs separately isolated state and token.
+services:
+  runtime:
+    image: ghcr.io/nano-muse/nanomuse:${RUNTIME_IMAGE_TAG:-1.0.5}
+    restart: unless-stopped
+    init: true
+    env_file:
+      - path: ./runtime.env
+        required: true
+    command: ["serve", "--host", "0.0.0.0", "--no-qr"]
+    ports:
+      - "${RUNTIME_BIND_IP:-127.0.0.1}:${RUNTIME_PORT:-8788}:8787"
+    volumes:
+      - type: bind
+        source: ${NANOMUSE_DATA_ROOT:?Set NANOMUSE_DATA_ROOT in .env}/runtimes/${RUNTIME_OWNER:-primary}/data
+        target: /data
+      - type: bind
+        source: ${NANOMUSE_DATA_ROOT:?Set NANOMUSE_DATA_ROOT in .env}/runtimes/${RUNTIME_OWNER:-primary}/workspace
+        target: /workspace
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
