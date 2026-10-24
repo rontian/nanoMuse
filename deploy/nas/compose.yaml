@@ -1,4 +1,5 @@
-# Family Cloud Relay: build from this Fork's cloud/ source; no extra Caddy.
+# Shared family Relay. Build from the checked-out Fork's cloud/ source.
+# Runtime and persistent configuration do not live inside this Git repository.
 name: nanomuse-family
 services:
   relay:
@@ -8,13 +9,13 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file:
-      - path: ./relay.env
+      - path: ${NANOMUSE_CONFIG_ROOT:?Set NANOMUSE_CONFIG_ROOT}/relay.env
         required: true
     ports:
       - "${RELAY_BIND_IP:-127.0.0.1}:${RELAY_PORT:-8787}:8787"
     volumes:
       - type: bind
-        source: ${NANOMUSE_DATA_ROOT:?Set NANOMUSE_DATA_ROOT in .env}/relay/data
+        source: ${NANOMUSE_DATA_ROOT:?Set NANOMUSE_DATA_ROOT}/relay
         target: /srv/nanomuse-cloud/data
     security_opt:
       - no-new-privileges:true
