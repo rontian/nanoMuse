@@ -1,21 +1,47 @@
-# Optional one-person Runtime. Each family user needs separately isolated state and token.
+# Optional per-user Agent Runtimes. Neither starts in the default Relay deployment.
+# Opt in explicitly with --profile runtime-1 / --profile runtime-2.
+# Do not reuse a token, volume, workspace or Relay account between people.
 services:
-  runtime:
+  runtime-1:
+    profiles: ["runtime-1"]
     image: ghcr.io/nano-muse/nanomuse:${RUNTIME_IMAGE_TAG:-1.0.5}
     restart: unless-stopped
     init: true
     env_file:
-      - path: ./runtime.env
+      - path: ./runtime-1.env
         required: true
     command: ["serve", "--host", "0.0.0.0", "--no-qr"]
     ports:
-      - "${RUNTIME_BIND_IP:-127.0.0.1}:${RUNTIME_PORT:-8788}:8787"
+      - "${RUNTIME_BIND_IP:-127.0.0.1}:${RUNTIME_1_PORT:-8788}:8787"
     volumes:
       - type: bind
-        source: ${NANOMUSE_DATA_ROOT:?Set NANOMUSE_DATA_ROOT in .env}/runtimes/${RUNTIME_OWNER:-primary}/data
+        source: ${NANOMUSE_DATA_ROOT:?Set NANOMUSE_DATA_ROOT in .env}/runtimes/user-1/data
         target: /data
       - type: bind
-        source: ${NANOMUSE_DATA_ROOT:?Set NANOMUSE_DATA_ROOT in .env}/runtimes/${RUNTIME_OWNER:-primary}/workspace
+        source: ${NANOMUSE_DATA_ROOT:?Set NANOMUSE_DATA_ROOT in .env}/runtimes/user-1/workspace
+        target: /workspace
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  runtime-2:
+    profiles: ["runtime-2"]
+    image: ghcr.io/nano-muse/nanomuse:${RUNTIME_IMAGE_TAG:-1.0.5}
+    restart: unless-stopped
+    init: true
+    env_file:
+      - path: ./runtime-2.env
+        required: true
+    command: ["serve", "--host", "0.0.0.0", "--no-qr"]
+    ports:
+      - "${RUNTIME_BIND_IP:-127.0.0.1}:${RUNTIME_2_PORT:-8789}:8787"
+    volumes:
+      - type: bind
+        source: ${NANOMUSE_DATA_ROOT:?Set NANOMUSE_DATA_ROOT in .env}/runtimes/user-2/data
+        target: /data
+      - type: bind
+        source: ${NANOMUSE_DATA_ROOT:?Set NANOMUSE_DATA_ROOT in .env}/runtimes/user-2/workspace
         target: /workspace
     security_opt:
       - no-new-privileges:true
