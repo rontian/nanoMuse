@@ -53,7 +53,7 @@ cp "$ROOT/source/deploy/nas/runtime.env.example" "$ROOT/config/runtime-1.env"
 cp "$ROOT/source/deploy/nas/runtime.env.example" "$ROOT/config/runtime-2.env"
 
 chmod 700 "$ROOT/config" "$ROOT/backups"
-chmod 600 "$ROOT/config/"*.env
+chmod 600 "$ROOT/config/.env" "$ROOT/config/"*.env
 sudo chown 10001:10001 "$ROOT/data/relay"
 sudo chown -R 1000:1000 "$ROOT/data/runtimes"
 ```
