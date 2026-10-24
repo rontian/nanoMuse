@@ -1,0 +1,9 @@
+# Never commit secrets, state or backups.
+.env
+relay.env
+runtime.env
+backups/
+data/
+*.db
+*.db-wal
+*.db-shm
